@@ -1,15 +1,20 @@
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
 
-const EntryCounter = () => {
+const EntryCounter = ({ slug }) => {
   const [count, setCount] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!slug) {
+      setLoading(false);
+      return;
+    }
+
     const fetchCount = async () => {
       try {
-        const res = await api.get('/api/slam');
-        setCount(res.data.length);
+        const res = await api.get(`/api/books/${slug}/count`);
+        setCount(res.data.count);
       } catch (err) {
         console.error('Failed to fetch count:', err);
       } finally {
@@ -17,7 +22,7 @@ const EntryCounter = () => {
       }
     };
     fetchCount();
-  }, []);
+  }, [slug]);
 
   if (loading) return null;
 

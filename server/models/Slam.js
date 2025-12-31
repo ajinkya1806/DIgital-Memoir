@@ -3,6 +3,12 @@ const mongoose = require('mongoose');
 
 const SlamSchema = new mongoose.Schema(
   {
+    bookId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Book',
+      required: true,
+      index: true,
+    },
     friendName: {
       type: String,
       required: true,
@@ -68,6 +74,7 @@ const SlamSchema = new mongoose.Schema(
 );
 
 // Index for faster sorting and potential future querying
+SlamSchema.index({ bookId: 1, createdAt: -1 });
 SlamSchema.index({ createdAt: -1 });
 SlamSchema.index({ friendName: 1 });
 

@@ -1,5 +1,6 @@
 // server/controllers/slamController.js
 const SlamEntry = require('../models/Slam.js');
+const Book = require('../models/Book.js');
 
 // Very small helper to trim and strip basic HTML tags
 const cleanText = (value = '') => {
@@ -187,6 +188,161 @@ exports.getEntries = async (req, res, next) => {
     res.status(200).json(entriesWithMood);
   } catch (error) {
     console.error('Error fetching entries:', error);
+    next(error);
+  }
+};
+
+// Create a new entry for a specific book (public, no PIN required)
+exports.createBookEntry = async (req, res, next) => {
+  try {
+    const { slug } = req.params;
+    
+    // Find the book by slug
+    const book = await Book.findOne({ slug });
+    if (!book) {
+      return res.status(404).json({ error: 'Book not found.' });
+    }
+
+    const rawFriendName = req.body.friendName;
+    const rawMessage = req.body.message;
+
+    const friendName = cleanText(rawFriendName);
+    const message = cleanText(rawMessage);
+
+    if (!friendName || !message) {
+      return res
+        .status(400)
+        .json({ error: 'Both name and message are required.' });
+    }
+
+    if (friendName.length > 80) {
+      return res
+        .status(400)
+        .json({ error: 'Name is a bit too long. Keep it under 80 characters.' });
+    }
+
+    // Multer adds file info to req.files if uploaded
+    let audioUrl = null;
+    let doodleUrl = null;
+
+    if (req.files) {
+      console.log('📁 Files received:', {
+        hasFiles: !!req.files,
+        fileKeys: Object.keys(req.files),
+        audioCount: req.files['audio']?.length || 0,
+        doodleCount: req.files['doodle']?.length || 0,
+      });
+
+      if (req.files['audio'] && req.files['audio'][0]) {
+        const audioFile = req.files['audio'][0];
+        audioUrl = audioFile.secure_url || audioFile.url || audioFile.path;
+        
+        if (audioUrl && !audioUrl.startsWith('http')) {
+          if (audioFile.secure_url) {
+            audioUrl = audioFile.secure_url;
+          } else if (audioFile.url) {
+            audioUrl = audioFile.url;
+          }
+        }
+        
+        console.log('✅ Audio URL extracted:', audioUrl);
+      }
+      
+      if (req.files['doodle'] && req.files['doodle'][0]) {
+        const doodleFile = req.files['doodle'][0];
+        doodleUrl = doodleFile.secure_url || doodleFile.url || doodleFile.path;
+        
+        if (doodleUrl && !doodleUrl.startsWith('http')) {
+          if (doodleFile.secure_url) {
+            doodleUrl = doodleFile.secure_url;
+          } else if (doodleFile.url) {
+            doodleUrl = doodleFile.url;
+          }
+        }
+        
+        console.log('✅ Doodle URL extracted:', doodleUrl);
+      }
+    }
+
+    const mood = req.body.mood || 'classic';
+    const validMoods = ['nostalgic', 'funny', 'heartfelt', 'adventurous', 'classic'];
+    const finalMood = validMoods.includes(mood) ? mood : 'classic';
+
+    // Clean and store all individual fields with bookId
+    const newEntry = new SlamEntry({
+      bookId: book._id,
+      friendName,
+      nickname: cleanText(req.body.nickname) || null,
+      // Personal & Emotional
+      firstMemory: cleanText(req.body.firstMemory) || null,
+      favouriteThing: cleanText(req.body.favouriteThing) || null,
+      oneWord: cleanText(req.body.oneWord) || null,
+      wish: cleanText(req.body.wish) || null,
+      bestMemory: cleanText(req.body.bestMemory) || null,
+      whatMakesMeLaugh: cleanText(req.body.whatMakesMeLaugh) || null,
+      // Favorites
+      favoriteHero: cleanText(req.body.favoriteHero) || null,
+      favoriteSong: cleanText(req.body.favoriteSong) || null,
+      favoriteSinger: cleanText(req.body.favoriteSinger) || null,
+      favoriteMovie: cleanText(req.body.favoriteMovie) || null,
+      favoriteFood: cleanText(req.body.favoriteFood) || null,
+      favoriteColor: cleanText(req.body.favoriteColor) || null,
+      // Dreams & Future
+      dreamDestination: cleanText(req.body.dreamDestination) || null,
+      futurePrediction: cleanText(req.body.futurePrediction) || null,
+      // Final message
+      message,
+      audioUrl,
+      doodleUrl,
+      mood: finalMood,
+    });
+
+    const savedEntry = await newEntry.save();
+    
+    console.log('Entry saved:', {
+      id: savedEntry._id,
+      bookId: savedEntry.bookId,
+      name: savedEntry.friendName,
+      hasAudio: !!savedEntry.audioUrl,
+      hasDoodle: !!savedEntry.doodleUrl,
+    });
+    
+    res.status(201).json(savedEntry);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get all entries for a specific book (protected by PIN)
+exports.getBookEntries = async (req, res, next) => {
+  try {
+    // req.book is set by the verifyPin middleware
+    const bookId = req.book._id;
+    
+    const entries = await SlamEntry.find({ bookId })
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    // Ensure all entries have a mood field
+    const entriesWithMood = entries.map((entry) => {
+      const entryData = {
+        ...entry,
+        mood: entry.mood || 'classic',
+      };
+      
+      if (entry.doodleUrl || entry.audioUrl) {
+        console.log(`Entry ${entry._id}:`, {
+          hasDoodle: !!entry.doodleUrl,
+          hasAudio: !!entry.audioUrl,
+        });
+      }
+      
+      return entryData;
+    });
+    
+    res.status(200).json(entriesWithMood);
+  } catch (error) {
+    console.error('Error fetching book entries:', error);
     next(error);
   }
 };

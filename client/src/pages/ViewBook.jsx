@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import HTMLFlipBook from 'react-pageflip';
-import { Link } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
@@ -402,29 +402,140 @@ const Page = React.forwardRef((props, ref) => {
 Page.displayName = 'Page';
 
 const ViewBook = () => {
+  const { slug } = useParams();
+  const navigate = useNavigate();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [pin, setPin] = useState('');
+  const [showPinPrompt, setShowPinPrompt] = useState(true);
+  const [pinError, setPinError] = useState('');
 
-  const fetchEntries = async () => {
+  // Check if PIN is stored in sessionStorage
+  useEffect(() => {
+    if (slug) {
+      const storedPin = sessionStorage.getItem(`book_pin_${slug}`);
+      if (storedPin) {
+        setPin(storedPin);
+        setShowPinPrompt(false);
+        fetchEntries(storedPin);
+      } else {
+        setLoading(false);
+      }
+    } else {
+      setError('Invalid Slambook link. Please check the URL.');
+      setLoading(false);
+    }
+  }, [slug]);
+
+  const handlePinSubmit = async (e) => {
+    e.preventDefault();
+    setPinError('');
+    
+    if (!pin.trim()) {
+      setPinError('Please enter your PIN.');
+      return;
+    }
+
+    try {
+      // Verify PIN first
+      await api.post(`/api/books/${slug}/login`, { pin: pin.trim() });
+      
+      // Store PIN in sessionStorage for convenience
+      sessionStorage.setItem(`book_pin_${slug}`, pin.trim());
+      
+      setShowPinPrompt(false);
+      setLoading(true);
+      await fetchEntries(pin.trim());
+    } catch (err) {
+      console.error('PIN verification error:', err);
+      setPinError(err.response?.data?.error || 'Invalid PIN. Please try again.');
+    }
+  };
+
+  const fetchEntries = async (pinToUse) => {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get('/api/slam');
+      
+      const res = await api.get(`/api/books/${slug}/entries`, {
+        headers: {
+          'X-Book-PIN': pinToUse || pin,
+        },
+      });
+      
       setEntries(res.data);
     } catch (err) {
       console.error('Error fetching entries:', err);
-      setError('Failed to load memories. Please try again.');
+      if (err.response?.status === 401) {
+        setError('Invalid PIN. Please refresh and try again.');
+        sessionStorage.removeItem(`book_pin_${slug}`);
+        setShowPinPrompt(true);
+      } else {
+        setError('Failed to load memories. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchEntries();
-  }, []);
+  const shareLink = slug ? `${window.location.origin}/fill/${slug}` : '';
 
-  const shareLink = `${window.location.origin}/fill`;
+  // Show PIN prompt if needed
+  if (showPinPrompt && !loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900 px-4">
+        <div className="max-w-md w-full bg-[#fdfbf7] p-6 sm:p-8 rounded-xl shadow-2xl border-4 border-stone-700">
+          <div className="text-center mb-6">
+            <h1 className="text-3xl sm:text-4xl font-bold font-handwriting text-stone-900 mb-2">
+              Enter Your PIN
+            </h1>
+            <p className="text-stone-600 text-sm">
+              Please enter your secret PIN to view this Slambook.
+            </p>
+          </div>
+
+          {pinError && (
+            <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+              {pinError}
+            </div>
+          )}
+
+          <form onSubmit={handlePinSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold tracking-[0.2em] text-stone-500 mb-1 uppercase">
+                Secret PIN
+              </label>
+              <input
+                type="password"
+                required
+                className="w-full border-2 border-stone-300 rounded-lg px-4 py-3 bg-white focus:ring-2 ring-stone-400 outline-none text-stone-900"
+                placeholder="Enter your PIN"
+                value={pin}
+                onChange={(e) => setPin(e.target.value)}
+                autoFocus
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-stone-900 text-white py-3.5 rounded-full font-semibold tracking-[0.25em] text-sm hover:bg-stone-800 transition"
+            >
+              View Slambook
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="w-full bg-stone-200 text-stone-800 py-3 rounded-full font-semibold tracking-[0.25em] text-sm hover:bg-stone-300 transition"
+            >
+              Back to Home
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900 overflow-hidden relative">
@@ -437,14 +548,16 @@ const ViewBook = () => {
       {/* Header buttons */}
       <div className="absolute top-2 sm:top-5 right-2 sm:right-5 flex flex-col sm:flex-row gap-2 sm:gap-3 z-50">
         <ShareButton link={shareLink} className="text-xs sm:text-sm" />
-        <Link
-          to="/fill"
-          className="flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-1.5 sm:py-2 bg-white text-stone-900 rounded-full font-semibold hover:bg-stone-100 transition shadow-lg hover:shadow-xl transform hover:scale-105 text-xs sm:text-sm"
-        >
-          <span>+</span>
-          <span className="hidden sm:inline">Sign Book</span>
-          <span className="sm:hidden">Sign</span>
-      </Link>
+        {slug && (
+          <Link
+            to={`/fill/${slug}`}
+            className="flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-1.5 sm:py-2 bg-white text-stone-900 rounded-full font-semibold hover:bg-stone-100 transition shadow-lg hover:shadow-xl transform hover:scale-105 text-xs sm:text-sm"
+          >
+            <span>+</span>
+            <span className="hidden sm:inline">Sign Book</span>
+            <span className="sm:hidden">Sign</span>
+          </Link>
+        )}
       </div>
 
       {/* Main content */}
@@ -452,7 +565,7 @@ const ViewBook = () => {
         {loading ? (
           <LoadingSpinner size="lg" text="Loading your memories..." />
         ) : error ? (
-          <ErrorMessage message={error} onRetry={fetchEntries} />
+          <ErrorMessage message={error} onRetry={() => fetchEntries(pin)} />
         ) : entries.length === 0 ? (
           <EmptyState />
         ) : (

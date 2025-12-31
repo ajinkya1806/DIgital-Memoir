@@ -5,6 +5,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const slamRoutes = require('./routes/slamRoutes');
+const bookRoutes = require('./routes/bookRoutes');
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.get('/api/health', (req, res) => {
 
 // Routes
 app.use('/api/slam', slamRoutes);
+app.use('/api/books', bookRoutes);
 
 // Not found handler
 app.use((req, res, next) => {

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import api from '../utils/api';
 import SignaturePad from '../components/SignaturePad';
 import VoiceRecorder from '../components/VoiceRecorder';
@@ -30,6 +30,7 @@ const INITIAL_FORM = {
 
 const FillSlam = () => {
   const navigate = useNavigate();
+  const { slug } = useParams();
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [doodleBlob, setDoodleBlob] = useState(null);
   const [audioBlob, setAudioBlob] = useState(null);
@@ -42,8 +43,30 @@ const FillSlam = () => {
 
   const shareLink = useMemo(() => {
     if (typeof window === 'undefined') return '';
-    return `${window.location.origin}/fill`;
-  }, []);
+    return slug ? `${window.location.origin}/fill/${slug}` : '';
+  }, [slug]);
+
+  // Redirect if slug is missing
+  if (!slug) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900 px-4">
+        <div className="max-w-md w-full bg-[#fdfbf7] p-6 sm:p-8 rounded-xl shadow-2xl border-4 border-stone-700 text-center">
+          <h1 className="text-2xl font-bold font-handwriting text-stone-900 mb-4">
+            Invalid Slambook Link
+          </h1>
+          <p className="text-stone-600 mb-6">
+            This link is not valid. Please check the URL or ask for the correct link.
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            className="w-full bg-stone-900 text-white py-3 rounded-full font-semibold tracking-[0.25em] text-sm hover:bg-stone-800 transition"
+          >
+            Go to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
 
   const handleDoodleSave = (blob) => {
@@ -101,9 +124,18 @@ const FillSlam = () => {
     if (audioBlob) data.append('audio', audioBlob, 'voice.webm');
 
     try {
-      await api.post('/api/slam', data, {
+      if (!slug) {
+        setError('Invalid Slambook link. Please check the URL.');
+        setLoading(false);
+        return;
+      }
+
+      await api.post(`/api/books/${slug}/entries`, data, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+      // Navigate to a success page or show a message
+      alert('Your entry has been added successfully! Thank you for sharing your memory.');
+      // Optionally navigate back or to the landing page
       navigate('/');
     } catch (err) {
       console.error(err);
@@ -134,7 +166,7 @@ const FillSlam = () => {
             remember us, and pour a little bit of that into this page.
           </p>
 
-          <EntryCounter />
+          {slug && <EntryCounter slug={slug} />}
 
           <div className="flex flex-col items-center gap-2 mt-2">
             <span className="text-[11px] uppercase tracking-[0.3em] text-stone-500">
