@@ -6,7 +6,7 @@ const SlamSchema = new mongoose.Schema(
     bookId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Book',
-      required: true,
+      required: false, // Optional for backward compatibility during migration
       index: true,
     },
     friendName: {

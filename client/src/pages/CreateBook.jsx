@@ -37,10 +37,23 @@ const CreateBook = () => {
 
       setCreatedBook(response.data);
     } catch (err) {
-      console.error(err);
-      const errorMessage =
-        err.response?.data?.error ||
-        'Something went wrong while creating your Slambook. Please try again.';
+      console.error('Create book error:', err);
+      
+      // More detailed error handling
+      let errorMessage = 'Something went wrong while creating your Slambook. Please try again.';
+      
+      if (err.response) {
+        // Server responded with error
+        errorMessage = err.response?.data?.error || errorMessage;
+      } else if (err.request) {
+        // Request made but no response (network error)
+        errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+        console.error('Network error - no response received:', err.request);
+      } else {
+        // Something else
+        errorMessage = err.message || errorMessage;
+      }
+      
       setError(errorMessage);
     } finally {
       setLoading(false);
