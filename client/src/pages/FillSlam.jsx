@@ -207,7 +207,7 @@ const FillSlam = () => {
                 type="text"
                 maxLength={80}
                 className="w-full border-b-2 border-stone-300 bg-transparent px-1 py-2 focus:border-stone-800 outline-none text-stone-900"
-                placeholder="The name I know you by"
+                placeholder="What everyone calls you"
                 value={formData.name}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, name: e.target.value }))
@@ -217,12 +217,12 @@ const FillSlam = () => {
 
             <div>
               <label className="block text-xs font-semibold tracking-[0.2em] text-stone-500 mb-1 uppercase">
-                What do you want me to call you?
+              Nickname / Alias
               </label>
               <input
                 type="text"
                 className="w-full border-b-2 border-dashed border-stone-200 bg-transparent px-1 py-2 focus:border-stone-700 outline-none text-stone-900"
-                placeholder="Your nickname, pet name, or secret code"
+                placeholder="Pet name, inside joke, or your alter ego"
                 value={formData.nickname}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, nickname: e.target.value }))
@@ -239,7 +239,7 @@ const FillSlam = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold tracking-[0.2em] text-stone-500 mb-1 uppercase">
-                  First memory of you
+                First Memory of Us
                 </label>
                 <textarea
                   className="w-full border-2 border-stone-200 rounded-md px-2 py-2 h-20 bg-white/80 focus:ring-2 ring-stone-200 outline-none text-sm text-stone-900"
@@ -257,7 +257,7 @@ const FillSlam = () => {
                 </label>
                 <textarea
                   className="w-full border-2 border-stone-200 rounded-md px-2 py-2 h-20 bg-white/80 focus:ring-2 ring-stone-200 outline-none text-sm text-stone-900"
-                  placeholder="That one time we…"
+                  placeholder="That one time we’ll never forget"
                   value={formData.bestMemory}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, bestMemory: e.target.value }))
@@ -271,7 +271,7 @@ const FillSlam = () => {
                 </label>
                 <textarea
                   className="w-full border-2 border-stone-200 rounded-md px-2 py-2 h-20 bg-white/80 focus:ring-2 ring-stone-200 outline-none text-sm text-stone-900"
-                  placeholder="The way we laugh, fight, talk…"
+                  placeholder="Say it. I won’t judge."
                   value={formData.favouriteThing}
                   onChange={(e) =>
                     setFormData((prev) => ({
@@ -288,7 +288,7 @@ const FillSlam = () => {
                 </label>
                 <textarea
                   className="w-full border-2 border-stone-200 rounded-md px-2 py-2 h-20 bg-white/80 focus:ring-2 ring-stone-200 outline-none text-sm text-stone-900"
-                  placeholder="Your weird habits, jokes, reactions…"
+                  placeholder="Habits, jokes, chaos — all of it"
                   value={formData.whatMakesMeLaugh}
                   onChange={(e) =>
                     setFormData((prev) => ({
@@ -301,7 +301,7 @@ const FillSlam = () => {
 
               <div>
                 <label className="block text-xs font-semibold tracking-[0.2em] text-stone-500 mb-1 uppercase">
-                  You in one word
+                  Describe yourself in one word
                 </label>
                 <input
                   type="text"
@@ -339,12 +339,12 @@ const FillSlam = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold tracking-[0.2em] text-stone-500 mb-1 uppercase">
-                  Favorite Hero
+                Someone You Look Up To
                 </label>
                 <input
                   type="text"
                   className="w-full border-2 border-stone-200 rounded-md px-2 py-2 bg-white/80 focus:ring-2 ring-stone-200 outline-none text-sm text-stone-900"
-                  placeholder="Superman, Batman, etc."
+                  placeholder="Real, fictional, or low-key iconic"
                   value={formData.favoriteHero}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, favoriteHero: e.target.value }))
